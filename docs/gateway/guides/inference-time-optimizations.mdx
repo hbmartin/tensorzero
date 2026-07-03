@@ -10,6 +10,12 @@ Dynamic In-Context Learning enhances context by incorporating relevant historica
 Best-of-N and Mixture-of-N sampling both generate multiple response candidates; Best-of-N selects the best one using an evaluator model, while Mixture-of-N combines the responses using a fuser model.
 All three techniques can lead to improved response quality and consistency in your LLM applications.
 
+<Note>
+  These strategies are implemented as variant types with an `experimental_` name prefix.
+  They are fully supported, but their configuration format, behavior, and names may change in
+  backwards-incompatible ways between releases as we refine them based on user feedback.
+</Note>
+
 ## Best-of-N Sampling
 
 ![Inference-Time Optimization: Best-of-N Sampling](./inference-time-optimizations-best-of-n-sampling.png)
@@ -31,7 +37,7 @@ TensorZero also supports a similar inference-time strategy called [Mixture-of-N 
 
 </Tip>
 
-To use BoN sampling in TensorZero, you need to configure a variant with the `experimental_best_of_n` type.
+To use BoN sampling in TensorZero, you need to configure a variant with the `experimental_best_of_n_sampling` type.
 Here's a simple example configuration:
 
 ```toml title="tensorzero.toml"
@@ -46,7 +52,7 @@ model = "gpt-4o-mini"
 user_template = "functions/draft_email/promptB/user.minijinja"
 
 [functions.draft_email.variants.best_of_n]
-type = "experimental_best_of_n"
+type = "experimental_best_of_n_sampling"
 candidates = ["promptA", "promptA", "promptB"]
 
 [functions.draft_email.variants.best_of_n.evaluator]
@@ -71,7 +77,7 @@ TensorZero will automatically make the necessary prompt modifications to evaluat
 
 </Tip>
 
-Read more about the `experimental_best_of_n` variant type in [Configuration Reference](/gateway/configuration-reference).
+Read more about the `experimental_best_of_n_sampling` variant type in [Configuration Reference](/gateway/configuration-reference).
 
 <Tip>
 
