@@ -717,20 +717,12 @@ impl Scope for TagRateLimitingConfigScope {
 impl Scope for ApiKeyPublicIdConfigScope {
     fn get_key_if_matches(&self, info: &ScopeInfo) -> Option<RateLimitingScopeKey> {
         match self.api_key_public_id() {
-            ApiKeyPublicIdValueScope::Concrete(key) => {
-                if info
-                    .api_key_public_id
-                    .as_ref()
-                    .is_some_and(|s| **s == **key)
-                {
-                    Some(RateLimitingScopeKey::ApiKeyPublicIdConcrete {
-                        // TODO - use existing arc
-                        api_key_public_id: Arc::from(key.as_str()),
-                    })
-                } else {
-                    None
-                }
-            }
+            ApiKeyPublicIdValueScope::Concrete(key) => match info.api_key_public_id.as_ref() {
+                Some(id) if **id == **key => Some(RateLimitingScopeKey::ApiKeyPublicIdConcrete {
+                    api_key_public_id: id.clone(),
+                }),
+                _ => None,
+            },
             ApiKeyPublicIdValueScope::Each => info.api_key_public_id.as_ref().map(|key| {
                 RateLimitingScopeKey::ApiKeyPublicIdEach {
                     api_key_public_id: key.clone(),

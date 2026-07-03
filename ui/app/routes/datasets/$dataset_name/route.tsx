@@ -165,7 +165,6 @@ export default function DatasetDetailPage({
       return () => dismiss({ immediate: true });
     }
     return;
-    // TODO: Fix and stop ignoring lint rule
   }, [rowsAdded, toast]);
 
   const handleDelete = () => {

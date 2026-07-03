@@ -126,11 +126,15 @@ pub struct PairwiseGLRArgs {
 }
 
 /// Errors that can occur when computing pairwise GLR statistics.
-/// TODO: Make errors more informative
 #[derive(Debug, Error)]
 pub enum PairwiseGLRError {
-    #[error("Error in compute_pairwise_glr")]
-    GLRError,
+    #[error(
+        "Error in compute_pairwise_glr: leader mean ({leader_mean}) is less than challenger mean ({challenger_mean})"
+    )]
+    GLRError {
+        leader_mean: f64,
+        challenger_mean: f64,
+    },
 }
 
 /// Arguments for checking the stopping condition in epsilon-best arm identification
@@ -153,12 +157,15 @@ pub(super) struct CheckStoppingArgs<'a> {
 }
 
 /// Errors that can occur when checking stopping conditions.
-/// TODO: Make errors more informative
 #[derive(Debug, Error)]
 pub enum CheckStoppingError {
-    #[error("Error in computing pairwise GLR")]
-    GLRError,
-    #[error("Error in checking stopping condition")]
+    #[error("Error in computing pairwise GLR: {0}")]
+    GLRError(#[from] PairwiseGLRError),
+    #[error("Error in checking stopping condition: failed to choose a leader arm")]
+    LeaderError,
+    #[error(
+        "Error in checking stopping condition: no GLR statistics were computed (no challenger arms)"
+    )]
     StoppingError,
     #[error("Missing variance for variant '{variant_name}' - variance must be non-null")]
     MissingVariance { variant_name: String },
@@ -207,7 +214,10 @@ fn compute_pairwise_glr(args: PairwiseGLRArgs) -> Result<f64, PairwiseGLRError> 
     } = args;
     // TODO: right way to validate inputs here?
     if leader_mean < challenger_mean {
-        return Err(PairwiseGLRError::GLRError);
+        return Err(PairwiseGLRError::GLRError {
+            leader_mean,
+            challenger_mean,
+        });
     }
 
     // No data means no evidence
@@ -341,7 +351,7 @@ pub fn check_stopping(args: CheckStoppingArgs<'_>) -> Result<StoppingResult, Che
 
     // Set leader arm
     let leader_arm: usize =
-        choose_leader(&means, &variances, &pull_counts).ok_or(CheckStoppingError::StoppingError)?;
+        choose_leader(&means, &variances, &pull_counts).ok_or(CheckStoppingError::LeaderError)?;
 
     // Compute likelihood statistic for all non-leader arms
     let mut glr_vals: Vec<f64> = vec![];
@@ -358,7 +368,7 @@ pub fn check_stopping(args: CheckStoppingArgs<'_>) -> Result<StoppingResult, Che
         let challenger_mean: f64 = means[challenger_arm];
         let challenger_variance: f64 = variances[challenger_arm];
         // Get GLR statistic for this pair
-        let glr_stat = compute_pairwise_glr(PairwiseGLRArgs {
+        glr_vals.push(compute_pairwise_glr(PairwiseGLRArgs {
             leader_pulls,
             leader_mean,
             leader_variance,
@@ -366,12 +376,7 @@ pub fn check_stopping(args: CheckStoppingArgs<'_>) -> Result<StoppingResult, Che
             challenger_mean,
             challenger_variance,
             epsilon,
-        });
-        if let Ok(value) = glr_stat {
-            glr_vals.push(value);
-        } else {
-            return Err(CheckStoppingError::GLRError);
-        }
+        })?);
     }
 
     // Get stopping threshold

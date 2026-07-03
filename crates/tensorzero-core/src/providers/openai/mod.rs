@@ -348,12 +348,11 @@ impl WrappedProvider for OpenAIProvider {
     ) -> Result<ProviderInferenceResponse, Error> {
         match self.api_type {
             OpenAIAPIType::Responses => {
-                // TODO - include 'responses' somewhere in the error message
                 let response: OpenAIResponsesResponse = serde_json::from_str(&raw_response)
                     .map_err(|e| {
                         Error::new(ErrorDetails::InferenceServer {
                             message: format!(
-                                "Error parsing JSON response: {}",
+                                "Error parsing JSON response from the OpenAI Responses API: {}",
                                 DisplayOrDebugGateway::new(e)
                             ),
                             raw_request: Some(raw_request.clone()),
