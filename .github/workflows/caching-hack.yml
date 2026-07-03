@@ -1,11 +1,15 @@
 # Unfortunately, writing to the Github Actions cache from a merge queue doesn't work correctly.
-# The `merge_group` event runs on a temporary branch, which prevents it from being used from
+# The `merge_group` event runs on a temporary branch, which prevents the cache from being used from
 # any other branches: https://github.com/orgs/community/discussions/47349
 #
 # The hacky solution is to re-run certain workflows on pushes to `main`,
 # as caches written from `main` are accessible from all other branches.
 #
-# To avoid wasting money, we should only use the standard (free) Github Actions runners.
+# To avoid wasting money, we should only use the standard (free) Github Actions runners,
+# and only build things that other workflows actually read from the cache. The
+# `build-gateway-cache` key written here is consumed by the e2e jobs in `general.yml`
+# and by `clickhouse-tests.yml` (all `ubuntu-latest`), so we only build on Linux.
+# If GitHub ever fixes merge-queue cache scoping, this workflow can be deleted.
 name: Caching Hack (re-runs actions on 'main' to update the cache)
 
 on:
@@ -20,7 +24,9 @@ env:
   CARGO_INCREMENTAL: 0
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  # This workflow only runs on pushes to `main`, so a single group per workflow is enough:
+  # a newer push supersedes any queued (not yet started) cache-warming run.
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 jobs:
@@ -31,19 +37,13 @@ jobs:
   build-gateway:
     name: build-gateway
     if: github.repository == 'tensorzero/tensorzero'
-    strategy:
-      matrix:
-        runner:
-          - ubuntu-latest
-          - windows-latest
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - name: Cleanup disk space
-        if: runner.os == 'Linux'
         run: bash ci/free-disk-space.sh
       - name: Install Rust (from rust-toolchain.toml)
         working-directory: crates
@@ -64,27 +64,6 @@ jobs:
           # We use this cache key from other jobs that need to build the gateway
           shared-key: "build-gateway-cache"
           workspaces: "crates -> target"
-      - name: Install uv
-        if: runner.os == 'windows'
-        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
-        with:
-          version: "0.9.27"
-
-      - name: Install Python 3.10
-        if: runner.os == 'windows'
-        run: |
-          for attempt in 1 2 3; do
-            if timeout 5m uv python install 3.10; then
-              break
-            fi
-            if [ $attempt -eq 3 ]; then
-              echo "Failed to install Python 3.10 after 3 attempts"
-              exit 1
-            fi
-            sleep $((10 * attempt))
-          done
-          echo "PYO3_PYTHON=$(uv python find python3.10)" >> $GITHUB_ENV
-        shell: bash
 
       - working-directory: crates
         run: |
