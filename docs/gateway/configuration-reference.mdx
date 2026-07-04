@@ -3213,9 +3213,19 @@ TensorZero currently supports the following variant types:
 | Type                                       | Description                                                                                                                                                                     |
 | :----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `chat_completion`                          | Uses a chat completion model to generate responses by processing a series of messages in a conversational format. This is typically what you use out of the box with most LLMs. |
-| `experimental_best_of_n`                   | Generates multiple response candidates with other variants, and selects the best one using an evaluator model.                                                                  |
+| `experimental_best_of_n_sampling`          | Generates multiple response candidates with other variants, and selects the best one using an evaluator model.                                                                  |
 | `experimental_dynamic_in_context_learning` | Selects similar high-quality examples using an embedding of the input, and incorporates them into the prompt to enhance context and improve response quality.                   |
 | `experimental_mixture_of_n`                | Generates multiple response candidates with other variants, and combines the responses using a fuser model.                                                                     |
+
+<Note>
+  Variant types prefixed with `experimental_` are fully supported, but they are still evolving:
+  their configuration format, behavior, and even their names may change in backwards-incompatible
+  ways between releases as we refine them based on user feedback. If you rely on an experimental
+  variant type, pin your gateway version and review the release notes before upgrading.
+
+  The `experimental_chain_of_thought` variant type is deprecated: use `chat_completion` with a
+  reasoning model instead.
+</Note>
 
 ```toml title="tensorzero.toml"
 [functions.draft-email.variants.prompt-v1]
@@ -3750,7 +3760,7 @@ user_template = "./functions/draft-email/prompt-v1/user_template.minijinja"
 
 </Accordion>
 
-<Accordion title='type: "experimental_best_of_n"'>
+<Accordion title='type: "experimental_best_of_n_sampling"'>
 
 ##### `candidates`
 
@@ -3774,7 +3784,7 @@ type = "chat_completion"
 # ...
 
 [functions.draft-email.variants.best-of-n]
-type = "experimental_best_of_n"
+type = "experimental_best_of_n_sampling"
 candidates = ["promptA", "promptA", "promptB"] # 3 candidate generations
 # ...
 ```
@@ -3793,7 +3803,7 @@ The evaluator can optionally include a `json_mode` parameter (see the `json_mode
 
 ```toml
 [functions.draft-email.variants.best-of-n]
-type = "experimental_best_of_n"
+type = "experimental_best_of_n_sampling"
 # ...
 
 [functions.draft-email.variants.best-of-n.evaluator]

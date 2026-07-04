@@ -227,6 +227,24 @@ We also maintain a Docker Compose for e2e tests `ui/fixtures/docker-compose.e2e.
 
 For internal contributors with access to the autopilot repository, see `ui/AGENTS.md` for detailed instructions on running the autopilot development environment and tests.
 
+### Dependencies
+
+#### Git-pinned dependencies
+
+The Cargo workspace (`crates/Cargo.toml`) currently depends on two git-pinned crates instead of published crates.io releases:
+
+- **`mime`** — pinned to a `hyperium/mime` revision because the `serde1` feature has not shipped in a published release.
+- **`durable`** — a first-party TensorZero crate (`tensorzero/durable`) consumed via a pinned git rev. CI (`ci/check-durable-deps.sh`) enforces that the rev is pinned (not a branch) and is in the upstream `main` branch's history.
+
+Be aware of the risks these pins carry:
+
+- **No automatic updates:** upstream security and bug fixes only land when someone manually bumps the rev. These pins are invisible to Dependabot-style version bumps.
+- **Weaker audit coverage:** tools like `cargo audit` match advisories against published versions, so a git rev may not be flagged even when the underlying code is affected.
+- **Publishing blocker:** crates with git dependencies cannot be published to crates.io, which blocks publishing any crate in the workspace that (transitively) depends on them.
+- **Availability coupling:** builds require GitHub to be reachable and the pinned rev to remain fetchable.
+
+When touching these dependencies, prefer moving back to a published release as soon as one is viable (for `durable`, that means publishing it to crates.io). If you must update a pin, pin to a specific rev in `main`'s history — never a branch.
+
 ### Advanced
 
 - To test batch and optimization workflows without real provider APIs, spin up the `mock-provider-api` and set `TENSORZERO_INTERNAL_MOCK_PROVIDER_API=http://localhost:3030` when running the gateway.

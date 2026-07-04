@@ -2972,6 +2972,10 @@ pub struct UninitializedVariantInfo {
 }
 
 /// NOTE: Contains deprecated variant `ChainOfThought` (#5298 / 2026.2+)
+// The `experimental_` prefix in the serialized names marks variant types that are fully
+// supported but still evolving: their configuration format, behavior, and names may change
+// in backwards-incompatible ways between releases. This is documented in the "Variants"
+// section of `docs/gateway/configuration-reference.mdx` — keep the two in sync.
 #[derive(ts_rs::TS, Clone, Debug, JsonSchema, PartialEq, TensorZeroDeserialize, Serialize)]
 #[ts(export)]
 #[serde(tag = "type")]

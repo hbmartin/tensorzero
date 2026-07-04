@@ -127,7 +127,7 @@ export function GlobalToastProvider({
       warn: (props) => {
         const { log, ...toastProps } = props;
         logger(props, "warn");
-        return emitToast({ ...toastProps, variant: "success" });
+        return emitToast({ ...toastProps, variant: "default" });
       },
       error: (props) => {
         const { log, ...toastProps } = props;

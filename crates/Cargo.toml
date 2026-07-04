@@ -119,6 +119,12 @@ tracing-opentelemetry-instrumentation-sdk = { version = "0.38.0", features = [
     "tracing_level_info",
 ] }
 tower-http = { version = "0.6.10", features = ["trace"] }
+# RISK: `mime` is pinned to an unreleased git revision because the `serde1` feature is
+# not available in any published release (crates.io is still on 0.3.17 from 2023).
+# Consequences: no upstream security/bug fixes land without a manual rev bump, `cargo audit`
+# cannot match advisories to a git rev, and downstream crates cannot be published to
+# crates.io while this pin exists. Switch back to a crates.io release once one ships with
+# `serde` support. See `CONTRIBUTING.md` ("Git-pinned dependencies") for details.
 mime = { git = "https://github.com/hyperium/mime", rev = "1ef137c7358fc64e07c8a640e4e9ba2a784b7f7d", features = [
     "serde1",
 ] }
@@ -140,6 +146,13 @@ schemars = "1.1.0"
 serde_arrow = { version = "0.14", features = ["arrow-58"] }
 blake3 = "1.8.5"
 moka = { version = "0.12.15", features = ["sync"] }
+# RISK: `durable` is a first-party dependency vendored via a git rev instead of a
+# published crates.io release. The rev must be pinned (not a branch) and must be in
+# `main`'s history of `tensorzero/durable` — CI enforces this via `ci/check-durable-deps.sh`.
+# Consequences: builds depend on GitHub availability and the pinned rev never being
+# garbage-collected, dependent crates cannot be published to crates.io, and version bumps
+# are manual and easy to forget. Prefer publishing `durable` to crates.io and depending on
+# a semver release. See `CONTRIBUTING.md` ("Git-pinned dependencies") for details.
 durable = { git = "https://github.com/tensorzero/durable", rev = "b5f2664bc12e154a3ed00281c1a14a8c7406eae1" }
 durable-tools-spawn = { path = "durable-tools-spawn" }
 tensorzero = { path = "tensorzero-client" }
